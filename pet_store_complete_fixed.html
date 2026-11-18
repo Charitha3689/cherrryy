@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pet Pals — Filters + Cart</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,Segoe UI,Roboto,Helvetica Neue,sans-serif;background:#fef9f2;margin:0;padding:1.5rem;display:flex;justify-content:center;min-height:100vh}
+.pet-store-app{width:100%;max-width:1100px;background:#fff;border-radius:1.5rem;padding:1.6rem;border:1px solid #f0e5d8}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.logo{font-weight:700;font-size:1.2rem}
+.cart-badge{background:#f5ede2;padding:.4rem .7rem;border-radius:999px;cursor:pointer;border:1px solid transparent;display:flex;gap:.5rem;align-items:center}
+.cart-count{background:#e07c4c;color:#fff;border-radius:50%;width:1.4rem;height:1.4rem;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem}
+.category-chips{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}
+.chip{padding:.5rem 1rem;border-radius:999px;border:1px solid #e9d9c8;background:#fff;cursor:pointer}
+.chip.active{background:#e07c4c;color:#fff;border-color:#e07c4c}
+.pet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.pet-card{padding:1rem;border-radius:.9rem;border:1px solid #f1e6db;text-align:center;background:#fff;display:flex;flex-direction:column;align-items:center}
+.pet-avatar{font-size:3rem;margin-bottom:.4rem}
+.pet-name{font-weight:700;margin-bottom:.2rem}
+.pet-price{color:#e07c4c;font-weight:700;margin-bottom:.6rem}
+.adopt-btn{margin-top:auto;padding:.5rem 1rem;border-radius:999px;border:none;background:#f5ede2;cursor:pointer}
+.store-footer{margin-top:1rem;display:flex;justify-content:space-between;align-items:center}
+.cart-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:1rem;z-index:50}
+.cart-modal{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:1rem;box-shadow:0 20px 40px rgba(0,0,0,.25);max-height:85vh;overflow:auto}
+.cart-item{display:flex;align-items:center;justify-content:space-between;padding:.5rem;border-bottom:1px solid #f1e6db}
+.remove{background:#ffe6e0;border:none;padding:.3rem .5rem;border-radius:6px;cursor:pointer;color:#b33}
+.btn{padding:.5rem .7rem;border-radius:6px;border:none;cursor:pointer}
+.btn-primary{background:#e07c4c;color:#fff}
+</style>
+</head>
+<body>
+<div class="pet-store-app">
+  <div class="header">
+    <div class="logo">Pet <strong>Pals</strong></div>
+    <div class="cart-badge" id="cartBadge" title="Open cart">🛒 <span class="cart-count" id="cartCount">0</span></div>
+  </div>
+
+  <div class="category-chips" id="categoryChips" aria-label="Categories">
+    <button class="chip active" data-cat="all">All pets</button>
+    <button class="chip" data-cat="dog">Dogs</button>
+    <button class="chip" data-cat="cat">Cats</button>
+    <button class="chip" data-cat="bird">Birds</button>
+    <button class="chip" data-cat="small-furry">Small &amp; Furry</button>
+  </div>
+
+  <div id="petGrid" class="pet-grid" aria-live="polite">
+    <div class="pet-card" data-category="dog" data-name="Buddy" data-price="249"><div class="pet-avatar">🐶</div><div class="pet-name">Buddy</div><div class="pet-price">$249</div><button class="adopt-btn">❤️ Adopt me</button></div>
+    <div class="pet-card" data-category="cat" data-name="Luna" data-price="129"><div class="pet-avatar">🐱</div><div class="pet-name">Luna</div><div class="pet-price">$129</div><button class="adopt-btn">❤️ Adopt me</button></div>
+    <div class="pet-card" data-category="small-furry" data-name="Peanut" data-price="25"><div class="pet-avatar">🐹</div><div class="pet-name">Peanut</div><div class="pet-price">$25</div><button class="adopt-btn">❤️ Adopt me</button></div>
+    <div class="pet-card" data-category="bird" data-name="Kiwi" data-price="45"><div class="pet-avatar">🦜</div><div class="pet-name">Kiwi</div><div class="pet-price">$45</div><button class="adopt-btn">❤️ Adopt me</button></div>
+    <div class="pet-card" data-category="small-furry" data-name="Clover" data-price="80"><div class="pet-avatar">🐰</div><div class="pet-name">Clover</div><div class="pet-price">$80</div><button class="adopt-btn">❤️ Adopt me</button></div>
+    <div class="pet-card" data-category="dog" data-name="Max" data-price="199"><div class="pet-avatar">🐕</div><div class="pet-name">Max</div><div class="pet-price">$199</div><button class="adopt-btn">❤️ Adopt me</button></div>
+  </div>
+
+  <div class="store-footer">
+    <div><strong>Visible:</strong> <span id="visibleCount">6</span></div>
+    <div id="cartMessage">❤️ Click "Adopt me" to add</div>
+  </div>
+</div>
+
+<!-- cart modal -->
+<div class="cart-modal-backdrop" id="cartModal" aria-hidden="true">
+  <div class="cart-modal" role="dialog" aria-modal="true">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem"><strong>Your cart</strong><div><button class="btn" id="clearCart">Clear</button><button class="btn" id="closeCart">Close</button></div></div>
+    <div id="cartItems"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.6rem"><div><strong>Total:</strong> <span id="cartTotal">$0</span></div><div><button id="checkoutBtn" class="btn btn-primary">Checkout</button></div></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const chipsContainer = document.getElementById('categoryChips');
+  const petGrid = document.getElementById('petGrid');
+  const visibleCountEl = document.getElementById('visibleCount');
+  const cartCountEl = document.getElementById('cartCount');
+  const cartBadge = document.getElementById('cartBadge');
+  const cartModal = document.getElementById('cartModal');
+  const cartItemsEl = document.getElementById('cartItems');
+  const cartTotalEl = document.getElementById('cartTotal');
+  const cartMessage = document.getElementById('cartMessage');
+  const clearCartBtn = document.getElementById('clearCart');
+  const closeCartBtn = document.getElementById('closeCart');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+
+  // cart state persisted
+  let cart = JSON.parse(localStorage.getItem('pet_cart') || '{}');
+
+  function saveCart(){ localStorage.setItem('pet_cart', JSON.stringify(cart)); }
+  function cartQty(){ return Object.values(cart).reduce((s,i)=>s+i.qty,0); }
+  function updateCartCount(){ cartCountEl.textContent = cartQty(); if(cartQty()===0) cartMessage.textContent='❤️ Click "Adopt me" to add'; else cartMessage.textContent=`🎉 ${cartQty()} in cart`; }
+
+  function renderCart(){
+    cartItemsEl.innerHTML = '';
+    let total = 0;
+    const keys = Object.keys(cart);
+    if(keys.length===0){ cartItemsEl.innerHTML = '<div style="padding:.6rem;color:#666">Cart empty</div>'; }
+    else {
+      keys.forEach(k=>{
+        const it = cart[k]; total += it.price*it.qty;
+        const div = document.createElement('div'); div.className='cart-item';
+        div.innerHTML = `<div><strong>${it.name}</strong> &times; ${it.qty}</div><div>$${(it.price*it.qty).toFixed(2)} <button class="remove" data-key="${k}">Remove</button></div>`;
+        cartItemsEl.appendChild(div);
+      });
+    }
+    cartTotalEl.textContent = '$' + total.toFixed(2);
+  }
+
+  function updateVisibleCount(){ visibleCountEl.textContent = petGrid.querySelectorAll('.pet-card:not([hidden])').length; }
+
+  // filtering via delegation
+  chipsContainer.addEventListener('click', e => {
+    const btn = e.target.closest('.chip');
+    if(!btn) return;
+    // set active
+    chipsContainer.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.getAttribute('data-cat') || 'all';
+    petGrid.querySelectorAll('.pet-card').forEach(card=>{
+      const c = card.getAttribute('data-category') || '';
+      card.hidden = (cat !== 'all' && c !== cat);
+    });
+    updateVisibleCount();
+  });
+
+  // adopt button handlers
+  petGrid.addEventListener('click', e => {
+    const btn = e.target.closest('.adopt-btn');
+    if(!btn) return;
+    const card = btn.closest('.pet-card');
+    const name = card.getAttribute('data-name');
+    const price = Number(card.getAttribute('data-price')||0);
+    const key = name.toLowerCase();
+    if(!cart[key]) cart[key] = {name, price, qty:0};
+    cart[key].qty += 1;
+    saveCart(); updateCartCount();
+    // feedback
+    const orig = btn.innerHTML; btn.innerHTML='✅ Added'; btn.disabled=true;
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },1000);
+  });
+
+  // cart open/close
+  cartBadge.addEventListener('click', ()=> { if(cartModal.style.display==='flex') { cartModal.style.display='none'; cartModal.setAttribute('aria-hidden','true'); } else { renderCart(); cartModal.style.display='flex'; cartModal.setAttribute('aria-hidden','false'); } });
+
+  closeCartBtn.addEventListener('click', ()=>{ cartModal.style.display='none'; cartModal.setAttribute('aria-hidden','true'); });
+
+  // remove and clear
+  cartItemsEl.addEventListener('click', e=>{ const rem = e.target.closest('.remove'); if(!rem) return; const k = rem.getAttribute('data-key'); delete cart[k]; saveCart(); updateCartCount(); renderCart(); });
+
+  clearCartBtn.addEventListener('click', ()=>{ if(confirm('Clear cart?')){ cart={}; saveCart(); updateCartCount(); renderCart(); } });
+
+  // checkout simulated
+  checkoutBtn.addEventListener('click', ()=>{
+    if(cartQty()===0){ alert('Cart empty'); return; }
+    checkoutBtn.disabled = true; checkoutBtn.textContent = 'Processing...';
+    setTimeout(()=>{
+      cartItemsEl.innerHTML = '<div style="text-align:center;padding:1rem"><div style="font-size:2rem">🎉</div><div>Payment successful</div></div>';
+      cart = {}; saveCart(); updateCartCount(); cartTotalEl.textContent='$0.00';
+      setTimeout(()=>{ checkoutBtn.disabled=false; checkoutBtn.textContent='Checkout'; cartModal.style.display='none'; cartModal.setAttribute('aria-hidden','true'); },1200);
+    },1200);
+  });
+
+  // init
+  updateCartCount(); updateVisibleCount();
+
+  // close modal clicking backdrop
+  cartModal.addEventListener('click', e=>{ if(e.target===cartModal){ cartModal.style.display='none'; cartModal.setAttribute('aria-hidden','true'); } });
+
+  // esc to close
+  window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ cartModal.style.display='none'; cartModal.setAttribute('aria-hidden','true'); } });
+})();
+</script>
+</body>
+</html>
